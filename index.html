@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teszt – Szegregáció, integráció, inklúzió</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --ok: #15803d;
+      --bad: #b91c1c;
+      --warn: #b45309;
+      --border: #d1d5db;
+      --soft: #eef2ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      width: min(1000px, 94%);
+      margin: 20px auto 40px;
+    }
+
+    .header, .card, .result-card, .lock-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+
+    .header {
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 1.7rem;
+    }
+
+    .header p {
+      margin: 6px 0;
+      color: var(--muted);
+    }
+
+    .status-bar {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--soft);
+      font-size: 0.98rem;
+    }
+
+    .card {
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .q-number {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .q-type {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1e40af;
+      font-size: 0.86rem;
+      font-weight: bold;
+    }
+
+    .question-text {
+      font-size: 1.08rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .option label {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .option input[type="radio"] {
+      margin-top: 3px;
+      transform: scale(1.15);
+      flex: 0 0 auto;
+    }
+
+    .matching-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .match-row {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .match-term {
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .match-row select, .pin-row input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    .actions {
+      position: sticky;
+      bottom: 0;
+      padding: 16px 0 0;
+      background: linear-gradient(to top, var(--bg) 75%, rgba(244,246,248,0));
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .primary-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+    }
+
+    .primary-btn:hover { background: var(--primary-dark); }
+
+    .secondary-btn {
+      background: #374151;
+      color: #fff;
+    }
+
+    .result-card, .lock-card {
+      padding: 20px;
+      margin-top: 18px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafafa;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 6px;
+    }
+
+    .metric .value {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    .review-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+      background: #fff;
+    }
+
+    .review-item.correct {
+      border-left: 6px solid var(--ok);
+      background: #f0fdf4;
+    }
+
+    .review-item.incorrect {
+      border-left: 6px solid var(--bad);
+      background: #fef2f2;
+    }
+
+    .review-title {
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .review-line {
+      margin: 6px 0;
+    }
+
+    .review-label {
+      font-weight: 700;
+    }
+
+    .ok-text { color: var(--ok); font-weight: 800; }
+    .bad-text { color: var(--bad); font-weight: 800; }
+    .warn-text { color: var(--warn); font-weight: 800; }
+
+    .lock-card h2, .result-card h2 {
+      margin-top: 0;
+    }
+
+    .pin-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .disabled-area {
+      opacity: 0.6;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.35rem; }
+      .question-text { font-size: 1rem; }
+      .pin-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="header">
+      <h1>Szegregáció, integráció, inklúzió – teszt</h1>
+      <p>Összes kérdés: <strong>20</strong></p>
+      <p>Töltsd ki a feladatokat, majd kattints az <strong>Értékelés</strong> gombra.</p>
+      <div class="status-bar" id="statusBar">
+        A teszt aktív. Az oldal elhagyása vagy háttérbe helyezése érvényteleníti a kitöltést.
+      </div>
+    </section>
+
+    <main id="testContainer"></main>
+
+    <section class="actions" id="actionsSection">
+      <button class="primary-btn" id="submitBtn">Értékelés</button>
+    </section>
+
+    <section id="resultSection" class="hidden"></section>
+    <section id="lockSection" class="hidden"></section>
+  </div>
+
+  <script>
+    const ADMIN_PIN = '2023';
+    const STORAGE_KEY = 'teszt_szegregacio_integracio_inkluzio_v1';
+    const INVALID_TEXT = 'Sajnálom, a teszted érvénytelen lett! :(';
+    const FINAL_LOCK_TEXT = 'Lezárt teszt.';
+
+    const questions = [
+      {
+        id: 1,
+        type: 'single',
+        typeLabel: 'Egyszerű feleletválasztás',
+        text: 'Mit jelent a fogyatékosság fogalma a tananyag alapján?',
+        options: [
+          'A normális emberi léthez szükséges tevékenységek végrehajtásának akadályozottsága vagy képtelensége.',
+          'Kizárólag az érzékszervek működésének tartós és teljes elvesztése.',
+          'Bármely olyan állapot, amely automatikusan külön iskolai elhelyezést tesz szükségessé.',
+          'Olyan viselkedési eltérés, amely csak fegyelmezési problémákban jelenik meg.'
+        ],
+        correct: 0
+      },
+      {
+        id: 2,
+        type: 'error',
+        typeLabel: 'Hibakereső feleletválasztás',
+        text: 'Melyik állítás helytelen a fogyatékosságok típusairól?',
+        options: [
+          'Az értelmi fogyatékosság nem azonos az érzelmi fogyatékossággal.',
+          'A halmozott fogyatékosság több fogyatékosság együttes jelenléte.',
+          'A mozgássérülteket szomatopedagógus látja el.',
+          'Az autizmus az értelmi fogyatékosság egyik hivatalos alkategóriája.'
+        ],
+        correct: 3
+      },
+      {
+        id: 3,
+        type: 'fill',
+        typeLabel: 'Mondatkiegészítés',
+        text: 'Egészítsd ki a mondatot: A sajátos nevelési igényű gyermek  ____.',
+        options: ['különleges bánásmódot igényel', 'tanulási zavarral küzd', 'hátrányos helyzetű', 'diagnózisát a járási szakértői bizottság állapítja meg'],
+        correct: 0
+      },
+      {
+        id: 4,
+        type: 'matching',
+        typeLabel: 'Fogalom párosítása meghatározással',
+        text: 'Párosítsd a fogalmakat a megfelelő meghatározással.',
+        pairs: [
+          { term: 'SNI', definition: 'Sajátos nevelési igényű gyermek, tanuló.' },
+          { term: 'BTMN', definition: 'Beilleszkedési, tanulási, magatartási nehézséggel küzdő gyermek, tanuló.' },
+          { term: 'HHH', definition: 'Halmozottan hátrányos helyzetű gyermek, tanuló.' },
+          { term: 'Kiemelten tehetséges', definition: 'Olyan gyermek vagy tanuló, aki átlag feletti adottságokat mutat egy vagy több területen.' }
+        ]
+      },
+      {
+        id: 5,
+        type: 'single',
+        typeLabel: 'Egyszerű feleletválasztás',
+        text: 'Mi jellemzi az iskolai szegregációt?',
+        options: [
+          'A különbségekkel rendelkező gyermekeket a többségi tanulóktól elkülönítve, külön intézményben vagy csoportban nevelik-oktatják.',
+          'Minden gyermek teljesen azonos tanterv szerint, egyéni alkalmazkodás nélkül tanul együtt.',
+          'A speciális szükségletű tanulók kizárólag tanórán kívüli programokon találkoznak társaikkal.',
+          'A többségi tanulókat helyezik át rendszeresen a speciális intézményekbe rövid időre.'
+        ],
+        correct: 0
+      },
+      {
+        id: 6,
+        type: 'error',
+        typeLabel: 'Hibakereső feleletválasztás',
+        text: 'Melyik állítás helytelen a szegregáció előnyeiről és hátrányairól?',
+        options: [
+          'Előnye lehet a kis létszámú osztály és a speciálisan képzett pedagógus.',
+          'Előnye lehet az egyéni fejlesztés és az akadálymentesített környezet.',
+          'Hátránya lehet, hogy a gyermek elszigetelődik a társadalom fő áramától.',
+          'Előnye, hogy a tanuló biztosan könnyebben beilleszkedik minden munkahelyi közösségbe.'
+        ],
+        correct: 3
+      },
+      {
+        id: 7,
+        type: 'fill',
+        typeLabel: 'Mondatkiegészítés',
+        text: 'Egészítsd ki a mondatot: Az integráció gyógypedagógiai értelemben a speciális nevelési szükségletű gyermekek ____ közé való beillesztésére vonatkozik.',
+        options: ['nem fogyatékosok', 'csak gyógypedagógusok', 'külön intézmények', 'vizsgabizottságok'],
+        correct: 0
+      },
+      {
+        id: 8,
+        type: 'single',
+        typeLabel: 'Egyszerű feleletválasztás',
+        text: 'Mit jelent a lokális vagy fizikai integráció?',
+        options: [
+          'Az SNI és az ép gyermekek közös épületben vannak, de nincs köztük tényleges kapcsolat.',
+          'A gyermekek minden órán és minden helyzetben teljesen együtt tanulnak.',
+          'A speciális intézmény fogadja a nem fogyatékos gyermekeket.',
+          'A tanuló egyéni fejlesztése kizárólag online formában zajlik.'
+        ],
+        correct: 0
+      },
+      {
+        id: 9,
+        type: 'matching',
+        typeLabel: 'Fogalom párosítása meghatározással',
+        text: 'Párosítsd az integráció fokozatait a meghatározásukkal.',
+        pairs: [
+          { term: 'Lokális / fizikai integráció', definition: 'Közös épületben vannak a gyermekek, de kapcsolat nincs közöttük.' },
+          { term: 'Szociális integráció', definition: 'A kapcsolat főként tanórán kívüli, közös tevékenységekben alakul ki.' },
+          { term: 'Részleges funkcionális integráció', definition: 'Az együttnevelés megvalósul, de nem minden helyzetben teljes körűen.' },
+          { term: 'Teljes funkcionális integráció', definition: 'A sérült gyermek teljes időben ép társai között van a többségi intézményben.' }
+        ]
+      },
+      {
+        id: 10,
+        type: 'error',
+        typeLabel: 'Hibakereső feleletválasztás',
+        text: 'Melyik állítás helytelen a szociális integrációról?',
+        options: [
+          'Lehetővé teszi a szociális kapcsolatok kialakítását.',
+          'Megvalósulhat közös játék, séta vagy étkezés közben is.',
+          'Lehet rendszeres, de lehet alkalmi jellegű is.',
+          'Lényege, hogy a gyermekek között semmilyen találkozás ne legyen.'
+        ],
+        correct: 3
+      },
+      {
+        id: 11,
+        type: 'fill',
+        typeLabel: 'Mondatkiegészítés',
+        text: 'Egészítsd ki a mondatot: A teljes funkcionális integráció az együttnevelés ____ foka.',
+        options: ['legmagasabb', 'legkorlátozottabb', 'legritkább', 'legkevésbé szervezett'],
+        correct: 0
+      },
+      {
+        id: 12,
+        type: 'single',
+        typeLabel: 'Egyszerű feleletválasztás',
+        text: 'Mi jellemzi a spontán integrációt?',
+        options: [
+          'Nem tudatos, nem tervszerű, és a többségi intézmény sokszor nem is tud a gyermek sajátos nevelési igényéről.',
+          'Előre megtervezett teammunka zajlik, több szakember részvételével.',
+          'A speciális intézmény fogad be ép gyermekeket pedagógiai céllal.',
+          'Csak akkor jön létre, ha a gyermek minden fejlesztést megkap a szakértői javaslat alapján.'
+        ],
+        correct: 0
+      },
+      {
+        id: 13,
+        type: 'error',
+        typeLabel: 'Hibakereső feleletválasztás',
+        text: 'Melyik állítás helytelen a fordított integrációról?',
+        options: [
+          'A nem fogyatékos gyermeket fogadja be a speciális intézmény.',
+          'A kifejezés a tananyagban külön megnevezve szerepel.',
+          'A sajátos nevelési igényű gyermek kerül a többségi intézménybe, ez a fordított integráció lényege.',
+          'Eltér a spontán integráció fogalmától.'
+        ],
+        correct: 2
+      },
+      {
+        id: 14,
+        type: 'matching',
+        typeLabel: 'Fogalom párosítása meghatározással',
+        text: 'Párosítsd a fogalmakat a megfelelő jelentéssel.',
+        pairs: [
+          { term: 'Szegregáció', definition: 'Elkülönített nevelés-oktatás külön intézményben, csoportban vagy osztályban.' },
+          { term: 'Integráció', definition: 'Különálló részek beilleszkedése egy nagyobb egészbe, befogadás.' },
+          { term: 'Inklúzió', definition: 'Be- és elfogadás, ahol az intézmény alkalmazkodik a résztvevők szükségleteihez.' },
+          { term: 'Exklúzió', definition: 'Kirekesztés, amikor valaki a közösségen kívül marad.' }
+        ]
+      },
+      {
+        id: 15,
+        type: 'fill',
+        typeLabel: 'Mondatkiegészítés',
+        text: 'Egészítsd ki a mondatot: Az inklúzió az együttnevelés ____ gyakorlata.',
+        options: ['elfogadó', 'elkülönítő', 'véletlenszerű', 'szankcionáló'],
+        correct: 0
+      },
+      {
+        id: 16,
+        type: 'single',
+        typeLabel: 'Egyszerű feleletválasztás',
+        text: 'Mi különbözteti meg leginkább az inklúziót az integráció egyszerűbb formáitól?',
+        options: [
+          'Az intézmény egész működését, értékeit, módszereit és feltételeit a gyermekek szükségleteihez igazítják.',
+          'Csak annyi történik, hogy a gyermekek ugyanabban az épületben vannak.',
+          'A pedagógusok feladata változatlan marad, minden alkalmazkodást a gyógypedagógus végez.',
+          'Az intézmény minden tanulóval ugyanazt a módszert használja a könnyebb szervezés érdekében.'
+        ],
+        correct: 0
+      },
+      {
+        id: 17,
+        type: 'error',
+        typeLabel: 'Hibakereső feleletválasztás',
+        text: 'Melyik állítás helytelen az inklúzió fő jegyeiről?',
+        options: [
+          'A nevelőtestület elfogadja és azonosul az inklúzió gondolatával.',
+          'Hangsúlyos szerepet kapnak az egyéni differenciáló módszerek.',
+          'A követelményeket szükség esetén rugalmasabban kezelik.',
+          'Az inklúzióban a szülők bevonása kerülendő, mert zavarja a pedagógiai munkát.'
+        ],
+        correct: 3
+      },
+      {
+        id: 18,
+        type: 'fill',
+        typeLabel: 'Mondatkiegészítés',
+        text: 'Egészítsd ki a mondatot: Az inkluzív gyakorlatban a gyógypedagógus a pedagógus ____ partnere.',
+        options: ['együttműködő, segítő', 'ellenőrző, számonkérő', 'külső, távoli', 'alkalmi, passzív'],
+        correct: 0
+      },
+      {
+        id: 19,
+        type: 'single',
+        typeLabel: 'Egyszerű feleletválasztás',
+        text: 'Mikor lehet a tananyag szerint ma is indokolt a szegregált nevelés?',
+        options: [
+          'Bizonyos esetekben, például súlyos halmozott sérülésnél, amikor egyéni haladást igénylő speciális ellátás szükséges.',
+          'Minden esetben, ha a tanuló lassabban dolgozik az osztály átlagnál.',
+          'Kizárólag akkor, ha a szülő ezt szóban kéri, szakvélemény nélkül.',
+          'Csak akkor, ha az iskola nem szeretne differenciált oktatást alkalmazni.'
+        ],
+        correct: 0
+      },
+      {
+        id: 20,
+        type: 'matching',
+        typeLabel: 'Fogalom párosítása meghatározással',
+        text: 'Párosítsd a fogalmakat az állításokkal.',
+        pairs: [
+          { term: 'Differenciálás', definition: 'A pedagógus az egyéni szükségletekhez igazítja a tanulásszervezést.' },
+          { term: 'Akadálymentesítés', definition: 'A környezetet a fogyatékosság jellegéhez igazítják a hozzáférés érdekében.' },
+          { term: 'Egyéni fejlesztés', definition: 'A tanuló saját haladási üteméhez és szükségleteihez igazodó támogatás.' },
+          { term: 'Szociális befogadás', definition: 'A közösségi elfogadás és beilleszkedés tudatos támogatása.' }
+        ]
+      }
+    ];
+
+    let renderedQuestions = [];
+    let submitted = false;
+
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function prepareQuestions() {
+      renderedQuestions = questions.map(q => {
+        if (q.type === 'matching') {
+          const defs = shuffle(q.pairs.map((p, idx) => ({
+            id: idx,
+            definition: p.definition
+          })));
+          return { ...q, definitionOptions: defs };
+        }
+
+        const indexedOptions = q.options.map((opt, idx) => ({
+          text: opt,
+          originalIndex: idx
+        }));
+        const shuffledOptions = shuffle(indexedOptions);
+        const newCorrect = shuffledOptions.findIndex(o => o.originalIndex === q.correct);
+
+        return {
+          ...q,
+          shuffledOptions,
+          shuffledCorrect: newCorrect
+        };
+      });
+    }
+
+    function renderTest() {
+      const container = document.getElementById('testContainer');
+      container.innerHTML = '';
+
+      renderedQuestions.forEach((q, index) => {
+        const card = document.createElement('section');
+        card.className = 'card';
+        card.id = `question-${q.id}`;
+
+        let inner = `
+          <div class="q-number">${index + 1}. kérdés</div>
+          <div class="q-type">${q.typeLabel}</div>
+          <div class="question-text">${escapeHtml(q.text)}</div>
+        `;
+
+        if (q.type === 'matching') {
+          inner += `<div class="matching-grid">`;
+          q.pairs.forEach((pair, pairIndex) => {
+            inner += `
+              <div class="match-row">
+                <div class="match-term">${escapeHtml(pair.term)}</div>
+                <select data-qid="${q.id}" data-pairindex="${pairIndex}">
+                  <option value="">Válassz meghatározást...</option>
+                  ${q.definitionOptions.map(def => `
+                    <option value="${def.id}">${escapeHtml(def.definition)}</option>
+                  `).join('')}
+                </select>
+              </div>
+            `;
+          });
+          inner += `</div>`;
+        } else {
+          inner += `<div class="options">`;
+          q.shuffledOptions.forEach((opt, optIndex) => {
+            inner += `
+              <div class="option">
+                <label>
+                  <input type="radio" name="q_${q.id}" value="${optIndex}">
+                  <span>${escapeHtml(opt.text)}</span>
+                </label>
+              </div>
+            `;
+          });
+          inner += `</div>`;
+        }
+
+        card.innerHTML = inner;
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function getAnswers() {
+      return renderedQuestions.map(q => {
+        if (q.type === 'matching') {
+          const selects = [...document.querySelectorAll(`select[data-qid="${q.id}"]`)];
+          const selected = selects.map(s => s.value === '' ? '' : Number(s.value));
+          return { qid: q.id, answer: selected };
+        } else {
+          const checked = document.querySelector(`input[name="q_${q.id}"]:checked`);
+          return { qid: q.id, answer: checked ? Number(checked.value) : null };
+        }
+      });
+    }
+
+    function gradeTest() {
+      const answers = getAnswers();
+      let correctCount = 0;
+      const review = [];
+
+      renderedQuestions.forEach(q => {
+        const given = answers.find(a => a.qid === q.id);
+
+        if (q.type === 'matching') {
+          const userArray = Array.isArray(given.answer) ? given.answer : [];
+          const correctArray = q.pairs.map((_, idx) => idx);
+          const isCorrect = userArray.length === q.pairs.length && userArray.every((v, i) => v === correctArray[i]);
+
+          if (isCorrect) correctCount++;
+
+          const userReadable = q.pairs.map((pair, i) => {
+            const value = userArray[i];
+            const found = q.definitionOptions.find(d => d.id === value);
+            return `${pair.term} → ${found ? found.definition : 'nincs válasz'}`;
+          });
+
+          const correctReadable = q.pairs.map(pair => `${pair.term} → ${pair.definition}`);
+
+          review.push({
+            id: q.id,
+            question: q.text,
+            correct: isCorrect,
+            userAnswer: userReadable,
+            correctAnswer: correctReadable
+          });
+        } else {
+          const isCorrect = given.answer === q.shuffledCorrect;
+          if (isCorrect) correctCount++;
+
+          review.push({
+            id: q.id,
+            question: q.text,
+            correct: isCorrect,
+            userAnswer: given.answer === null ? 'nincs válasz' : q.shuffledOptions[given.answer].text,
+            correctAnswer: q.shuffledOptions[q.shuffledCorrect].text
+          });
+        }
+      });
+
+      return {
+        total: renderedQuestions.length,
+        correctCount,
+        percent: Math.round((correctCount / renderedQuestions.length) * 100),
+        grade: getGrade(Math.round((correctCount / renderedQuestions.length) * 100)),
+        review
+      };
+    }
+
+    function getGrade(percent) {
+      if (percent <= 39) return '1 (elégtelen)';
+      if (percent <= 49) return '2 (elégséges)';
+      if (percent <= 59) return '3 (közepes)';
+      if (percent <= 79) return '4 (jó)';
+      return '5 (jeles)';
+    }
+
+    function renderResults(result) {
+      const resultSection = document.getElementById('resultSection');
+      resultSection.classList.remove('hidden');
+
+      let html = `
+        <section class="result-card">
+          <h2>Eredmény</h2>
+          <div class="result-grid">
+            <div class="metric">
+              <div class="label">Helyes válaszok száma</div>
+              <div class="value">${result.correctCount} / ${result.total}</div>
+            </div>
+            <div class="metric">
+              <div class="label">Százalékos eredmény</div>
+              <div class="value">${result.percent}%</div>
+            </div>
+            <div class="metric">
+              <div class="label">Érdemjegy</div>
+              <div class="value">${result.grade}</div>
+            </div>
+          </div>
+        </section>
+      `;
+
+      result.review.forEach((item, index) => {
+        html += `
+          <div class="review-item ${item.correct ? 'correct' : 'incorrect'}">
+            <div class="review-title">${index + 1}. kérdés</div>
+            <div class="review-line"><span class="review-label">Kérdés:</span> ${escapeHtml(item.question)}</div>
+            <div class="review-line"><span class="review-label">Saját válasz:</span> ${
+              Array.isArray(item.userAnswer)
+                ? `<ul>${item.userAnswer.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`
+                : escapeHtml(item.userAnswer)
+            }</div>
+            <div class="review-line"><span class="review-label">Helyes válasz:</span> ${
+              Array.isArray(item.correctAnswer)
+                ? `<ul>${item.correctAnswer.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`
+                : escapeHtml(item.correctAnswer)
+            }</div>
+            <div class="review-line"><span class="review-label">Minősítés:</span> ${
+              item.correct
+                ? `<span class="ok-text">Helyes</span>`
+                : `<span class="bad-text">Helytelen</span>`
+            }</div>
+          </div>
+        `;
+      });
+
+      resultSection.innerHTML = html;
+    }
+
+    function renderLockSection(mode) {
+      const lockSection = document.getElementById('lockSection');
+      lockSection.classList.remove('hidden');
+
+      const title = mode === 'invalid' ? INVALID_TEXT : FINAL_LOCK_TEXT;
+      const helper = mode === 'invalid'
+        ? 'A teszt ezen az eszközön és ebben a böngészőben zárolva marad. A feloldáshoz tanári PIN szükséges.'
+        : 'A teszt kiértékelés után lezárult. A feloldáshoz tanári PIN szükséges. A zárolási rész a kiértékelt teszt alatt jelenik meg, ezért az eredmény továbbra is végiggörgethető.';
+
+      lockSection.innerHTML = `
+        <section class="lock-card">
+          <h2>${escapeHtml(title)}</h2>
+          <p>${escapeHtml(helper)}</p>
+          <div class="pin-row">
+            <input type="password" id="pinInput" placeholder="Tanári PIN-kód">
+            <button class="secondary-btn" id="unlockBtn">Feloldás</button>
+          </div>
+          <div class="small-note" id="pinMsg"></div>
+        </section>
+      `;
+
+      document.getElementById('unlockBtn').addEventListener('click', () => {
+        const value = document.getElementById('pinInput').value;
+        const msg = document.getElementById('pinMsg');
+
+        if (value === ADMIN_PIN) {
+          localStorage.removeItem(STORAGE_KEY);
+          msg.innerHTML = '<span class="ok-text">Sikeres feloldás. Az oldal újratölthető, a teszt ismét kitölthető.</span>';
+          setTimeout(() => location.reload(), 600);
+        } else {
+          msg.innerHTML = '<span class="bad-text">Hibás PIN-kód.</span>';
+        }
+      });
+    }
+
+    function disableTestArea() {
+      document.getElementById('testContainer').classList.add('disabled-area');
+      document.getElementById('actionsSection').classList.add('hidden');
+      document.getElementById('statusBar').innerHTML = '<span class="warn-text">A teszt nem szerkeszthető.</span>';
+      [...document.querySelectorAll('input, select, button')].forEach(el => {
+        if (el.id !== 'pinInput' && el.id !== 'unlockBtn') {
+          el.disabled = true;
+        }
+      });
+    }
+
+    function setLockState(type) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        state: type,
+        timestamp: Date.now()
+      }));
+    }
+
+    function getLockState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function invalidateTest() {
+      if (submitted) return;
+      const current = getLockState();
+      if (current && (current.state === 'invalid' || current.state === 'final')) return;
+
+      setLockState('invalid');
+      disableTestArea();
+      document.getElementById('resultSection').classList.add('hidden');
+      renderLockSection('invalid');
+      document.getElementById('statusBar').innerHTML = `<span class="bad-text">${INVALID_TEXT}</span>`;
+      window.onbeforeunload = null;
+    }
+
+    function finalizeTest() {
+      submitted = true;
+      setLockState('final');
+      disableTestArea();
+      renderLockSection('final');
+      document.getElementById('statusBar').innerHTML = `<span class="warn-text">${FINAL_LOCK_TEXT}</span>`;
+      window.onbeforeunload = null;
+    }
+
+    function bindSecurity() {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && !submitted) {
+          invalidateTest();
+        }
+      });
+
+      window.addEventListener('blur', () => {
+        if (!submitted) {
+          invalidateTest();
+        }
+      });
+
+      window.addEventListener('pagehide', () => {
+        if (!submitted) {
+          invalidateTest();
+        }
+      });
+
+      window.onbeforeunload = function () {
+        if (!submitted) {
+          invalidateTest();
+        }
+      };
+    }
+
+    function restoreLockedStateIfNeeded() {
+      const saved = getLockState();
+      if (!saved) return false;
+
+      if (saved.state === 'invalid') {
+        disableTestArea();
+        renderLockSection('invalid');
+        document.getElementById('statusBar').innerHTML = `<span class="bad-text">${INVALID_TEXT}</span>`;
+        return true;
+      }
+
+      if (saved.state === 'final') {
+        disableTestArea();
+        renderLockSection('final');
+        document.getElementById('statusBar').innerHTML = `<span class="warn-text">${FINAL_LOCK_TEXT}</span>`;
+        return true;
+      }
+
+      return false;
+    }
+
+    function init() {
+      prepareQuestions();
+      renderTest();
+
+      const locked = restoreLockedStateIfNeeded();
+
+      if (!locked) {
+        bindSecurity();
+
+        document.getElementById('submitBtn').addEventListener('click', () => {
+          if (submitted) return;
+          const result = gradeTest();
+          renderResults(result);
+          finalizeTest();
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        });
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
