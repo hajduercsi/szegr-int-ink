@@ -17,9 +17,14 @@
       --warn: #b45309;
       --border: #d1d5db;
       --soft: #eef2ff;
+      --soft-green: #ecfdf5;
     }
 
     * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
 
     body {
       margin: 0;
@@ -34,7 +39,7 @@
       margin: 20px auto 40px;
     }
 
-    .header, .card, .result-card, .lock-card {
+    .header, .card, .result-card, .lock-card, .top-summary {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -62,6 +67,43 @@
       border-radius: 10px;
       background: var(--soft);
       font-size: 0.98rem;
+    }
+
+    .top-summary {
+      padding: 18px;
+      margin-bottom: 18px;
+      background: var(--soft-green);
+      border: 2px solid #86efac;
+    }
+
+    .top-summary h2 {
+      margin: 0 0 10px;
+      font-size: 1.35rem;
+    }
+
+    .top-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .top-summary-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .top-summary-box .label {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 6px;
+    }
+
+    .top-summary-box .value {
+      font-size: 1.35rem;
+      font-weight: 800;
     }
 
     .card {
@@ -268,6 +310,11 @@
       margin-top: 8px;
     }
 
+    ul {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+
     @media (max-width: 640px) {
       .header h1 { font-size: 1.35rem; }
       .question-text { font-size: 1rem; }
@@ -279,7 +326,7 @@
 </head>
 <body>
   <div class="container">
-    <section class="header">
+    <section class="header" id="pageTop">
       <h1>Szegregáció, integráció, inklúzió – teszt</h1>
       <p>Összes kérdés: <strong>20</strong></p>
       <p>Töltsd ki a feladatokat, majd kattints az <strong>Értékelés</strong> gombra.</p>
@@ -287,6 +334,8 @@
         A teszt aktív. Az oldal elhagyása vagy háttérbe helyezése érvényteleníti a kitöltést.
       </div>
     </section>
+
+    <section id="topSummary" class="top-summary hidden"></section>
 
     <main id="testContainer"></main>
 
@@ -692,11 +741,13 @@
         }
       });
 
+      const percent = Math.round((correctCount / renderedQuestions.length) * 100);
+
       return {
         total: renderedQuestions.length,
         correctCount,
-        percent: Math.round((correctCount / renderedQuestions.length) * 100),
-        grade: getGrade(Math.round((correctCount / renderedQuestions.length) * 100)),
+        percent,
+        grade: getGrade(percent),
         review
       };
     }
@@ -709,13 +760,35 @@
       return '5 (jeles)';
     }
 
+    function renderTopSummary(result) {
+      const topSummary = document.getElementById('topSummary');
+      topSummary.classList.remove('hidden');
+      topSummary.innerHTML = `
+        <h2>Kiértékelt eredmény</h2>
+        <div class="top-summary-grid">
+          <div class="top-summary-box">
+            <div class="label">Százalékos eredmény</div>
+            <div class="value">${result.percent}%</div>
+          </div>
+          <div class="top-summary-box">
+            <div class="label">Érdemjegy</div>
+            <div class="value">${result.grade}</div>
+          </div>
+          <div class="top-summary-box">
+            <div class="label">Helyes válaszok száma</div>
+            <div class="value">${result.correctCount} / ${result.total}</div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderResults(result) {
       const resultSection = document.getElementById('resultSection');
       resultSection.classList.remove('hidden');
 
       let html = `
         <section class="result-card">
-          <h2>Eredmény</h2>
+          <h2>Részletes értékelés</h2>
           <div class="result-grid">
             <div class="metric">
               <div class="label">Helyes válaszok száma</div>
@@ -829,6 +902,7 @@
       setLockState('invalid');
       disableTestArea();
       document.getElementById('resultSection').classList.add('hidden');
+      document.getElementById('topSummary').classList.add('hidden');
       renderLockSection('invalid');
       document.getElementById('statusBar').innerHTML = `<span class="bad-text">${INVALID_TEXT}</span>`;
       window.onbeforeunload = null;
@@ -902,9 +976,10 @@
         document.getElementById('submitBtn').addEventListener('click', () => {
           if (submitted) return;
           const result = gradeTest();
+          renderTopSummary(result);
           renderResults(result);
           finalizeTest();
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
     }
